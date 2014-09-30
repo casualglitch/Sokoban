@@ -7,16 +7,16 @@
     <offline-allowed/>
   </information>
   <resources>
-    <jfx:javafx-runtime version="2.2+" href="http://javadl.sun.com/webapps/download/GetFile/javafx-latest/windows-i586/javafx2.jnlp"/>
+    <jfx:javafx-runtime version="8.0+" href="http://javadl.sun.com/webapps/download/GetFile/javafx-latest/windows-i586/javafx2.jnlp"/>
   </resources>
   <resources>
     <j2se version="1.6+" href="http://java.sun.com/products/autodl/j2se"/>
-    <jar href="Sokoban_draft.jar" size="22361" download="eager" />
+    <jar href="Sokoban_draft.jar" size="22362" download="eager" />
     <jar href="lib/PropertiesManager.jar" size="5431" download="eager" />
     <jar href="lib/XMLUtilities.jar" size="7492" download="eager" />
   </resources>
   <applet-desc  width="800" height="600" main-class="com.javafx.main.NoJavaFXFallback"  name="Sokoban_draft" >
-    <param name="requiredFXVersion" value="2.2+"/>
+    <param name="requiredFXVersion" value="8.0+"/>
   </applet-desc>
   <jfx:javafx-desc  width="800" height="600" main-class="application.Main"  name="Sokoban_draft" />
   <update check="always"/>
