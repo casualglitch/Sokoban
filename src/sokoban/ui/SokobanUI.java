@@ -33,8 +33,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -64,7 +66,7 @@ public class SokobanUI extends Pane {
 
     // SplashScreen
     private ImageView splashScreenImageView;
-    private Pane splashScreenPane;
+    private StackPane splashScreenPane;
     private Label splashScreenImageLabel;
     private HBox levelSelectionPane;
     private ArrayList<Button> levelButtons;
@@ -166,8 +168,9 @@ public class SokobanUI extends Pane {
         props.addProperty(SokobanPropertyType.INSETS, "5");
         String str = props.getProperty(SokobanPropertyType.INSETS);
 
-        splashScreenPane = new FlowPane();
-
+        //splashScreenPane = new FlowPane();
+        splashScreenPane = new StackPane();
+        
         Image splashScreenImage = loadImage(splashScreenImagePath);
         splashScreenImageView = new ImageView(splashScreenImage);
 
@@ -185,9 +188,12 @@ public class SokobanUI extends Pane {
         //ArrayList<String> levelFiles = props
         //        .getPropertyOptionsList(SokobanPropertyType.LEVEL_FILES);
 
-        levelSelectionPane = new HBox();
-        levelSelectionPane.setSpacing(10.0);
-        levelSelectionPane.setAlignment(Pos.CENTER);
+        //levelSelectionPane = new HBox();
+        //levelSelectionPane.setSpacing(10.0);
+        //levelSelectionPane.setAlignment(Pos.CENTER);
+        GridPane grid = new GridPane();
+        grid.setHgap(4.0);
+        grid.setAlignment(Pos.CENTER);
         // add key listener
         levelButtons = new ArrayList<Button>();
         for (int i = 0; i < levels.size(); i++) {
@@ -208,15 +214,24 @@ public class SokobanUI extends Pane {
                 @Override
                 public void handle(ActionEvent event) {
                     // TODO
-                    //eventHandler.respondToSelectLevelRequest(level);
+                    eventHandler.respondToSelectLevelRequest(level);
+                    //eventHandler.respondToNewGameRequest();
                 }
             });
             // TODO
             //levelSelectionPane.getChildren().add(levelButton);
             // TODO: enable only the first level
-            levelButton.setDisable(true);
+            //levelButton.setDisable(true);
+            if (i>0) {
+                levelButton.setDisable(true);
+            }
+            if (i>=5) {
+                grid.add(levelButton, i-5, 1);
+            }
+            else
+                grid.add(levelButton, i, 0);
         }
-
+        splashScreenPane.getChildren().add(grid);
         mainPane.setCenter(splashScreenPane);
         //mainPane.setBottom(levelSelectionPane);
     }
