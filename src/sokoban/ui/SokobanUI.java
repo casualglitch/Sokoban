@@ -26,6 +26,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
+import javafx.scene.effect.BlendMode;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyEvent;
@@ -41,7 +42,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 
 public class SokobanUI extends Pane {
@@ -192,7 +196,7 @@ public class SokobanUI extends Pane {
         //levelSelectionPane.setSpacing(10.0);
         //levelSelectionPane.setAlignment(Pos.CENTER);
         GridPane grid = new GridPane();
-        grid.setHgap(4.0);
+        grid.setHgap(3.0);
         grid.setAlignment(Pos.CENTER);
         // add key listener
         levelButtons = new ArrayList<Button>();
@@ -214,22 +218,24 @@ public class SokobanUI extends Pane {
                 @Override
                 public void handle(ActionEvent event) {
                     // TODO
-                    eventHandler.respondToSelectLevelRequest(level);
-                    //eventHandler.respondToNewGameRequest();
+                    //eventHandler.respondToSelectLevelRequest(level);
+                    eventHandler.respondToNewGameRequest();
                 }
             });
+            Text label = new Text("LEVEL " + (i+1));
+            label.setFont(Font.font("Tahoma", FontWeight.BOLD, 35));
             // TODO
             //levelSelectionPane.getChildren().add(levelButton);
             // TODO: enable only the first level
             //levelButton.setDisable(true);
-            if (i>0) {
-                levelButton.setDisable(true);
-            }
             if (i>=5) {
                 grid.add(levelButton, i-5, 1);
+                grid.add(label, i-5, 1);
             }
-            else
+            else {
                 grid.add(levelButton, i, 0);
+                grid.add(label, i, 0);
+            }
         }
         splashScreenPane.getChildren().add(grid);
         mainPane.setCenter(splashScreenPane);
