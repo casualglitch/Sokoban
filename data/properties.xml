@@ -5,6 +5,10 @@
 -->
 <properties>
     <property_list>    
+    	<property name="BACK_IMG_NAME"          value="Back.png"></property>
+        <property name="STATS_IMG_NAME"         value="Stats.png"></property>
+        <property name="UNDO_IMG_NAME"          value="Undo.png"></property>
+        <property name="TIME_IMG_NAME"          value="Time.png"></property>
         <property name="SPLASH_SCREEN_TITLE_TEXT"   value="Select a Level"></property>
         <property name="WINDOW_WIDTH"               value="820"></property>
         <property name="WINDOW_HEIGHT"              value="820"></property>
@@ -44,6 +48,12 @@
             <option>level5.sok</option>
             <option>level6.sok</option>
             <option>level7.sok</option>
+        </property_options>
+        <property_options name="TOOLBAR_IMAGE_NAMES">
+            <option>Back.png</option>
+            <option>Stats.png</option>
+            <option>Undo.png</option>
+            <option>Time.png</option>
         </property_options>
     </property_options_list>
 </properties>

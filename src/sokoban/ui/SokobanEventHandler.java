@@ -47,8 +47,9 @@ public class SokobanEventHandler {
     public void respondToNewGameRequest() {
         SokobanGameStateManager gsm = ui.getGSM();
         gsm.startNewGame();
+        ui.initSokobanUI();
     }
-
+    
     /**
      * This method responds to when the user requests to exit the application.
      *
@@ -82,7 +83,7 @@ public class SokobanEventHandler {
         Label exitLabel = new Label(verifyExit);
         exitPane.setCenter(exitLabel);
         exitPane.setBottom(optionPane);
-        Scene scene = new Scene(exitPane, 50, 100);
+        Scene scene = new Scene(exitPane, 300, 100);
         dialogStage.setScene(scene);
         dialogStage.show();
         // WHAT'S THE USER'S DECISION?

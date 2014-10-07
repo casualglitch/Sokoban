@@ -77,10 +77,10 @@ public class SokobanUI extends Pane {
 
     // NorthToolBar
     private HBox northToolbar;
-    private Button gameButton;
+    private Button backButton;
     private Button statsButton;
-    private Button helpButton;
-    private Button exitButton;
+    private Button undoButton;
+    private Button timeButton;
 
     // GamePane
     private Label SokobanLabel;
@@ -248,8 +248,9 @@ public class SokobanUI extends Pane {
      */
     public void initSokobanUI() {
         // FIRST REMOVE THE SPLASH SCREEN
-        mainPane.getChildren().clear();
-
+        //mainPane.getChildren().clear();
+        mainPane.setCenter(null);
+        
         // GET THE UPDATED TITLE
         PropertiesManager props = PropertiesManager.getPropertiesManager();
         String title = props.getProperty(SokobanPropertyType.GAME_TITLE_TEXT);
@@ -260,7 +261,7 @@ public class SokobanUI extends Pane {
 
         // OUR WORKSPACE WILL STORE EITHER THE GAME, STATS,
         // OR HELP UI AT ANY ONE TIME
-        //initWorkspace();
+        initWorkspace();
         //initGameScreen();
         //initStatsPane();
         //initHelpPane();
@@ -279,22 +280,37 @@ public class SokobanUI extends Pane {
         northToolbar.setStyle("-fx-background-color:lightgray");
         northToolbar.setAlignment(Pos.CENTER);
         northToolbar.setPadding(marginlessInsets);
-        northToolbar.setSpacing(10.0);
+        //northToolbar.setSpacing(10.0);
 
-        // MAKE AND INIT THE GAME BUTTON
-        gameButton = initToolbarButton(northToolbar,
-                SokobanPropertyType.GAME_IMG_NAME);
-        //setTooltip(gameButton, SokobanPropertyType.GAME_TOOLTIP);
-        gameButton.setOnAction(new EventHandler<ActionEvent>() {
+        // MAKE AND INIT THE BACK BUTTON
+        backButton = initToolbarButton(northToolbar,
+                SokobanPropertyType.BACK_IMG_NAME);
+        //setTooltip(backButton, SokobanPropertyType.GAME_TOOLTIP);
+        backButton.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent event) {
                 // TODO Auto-generated method stub
                 eventHandler
-                        .respondToSwitchScreenRequest(SokobanUIState.PLAY_GAME_STATE);
+                        .respondToSwitchScreenRequest(SokobanUIState.SPLASH_SCREEN_STATE);
             }
         });
 
+        // MAKE AND INIT THE UNDO BUTTON
+        undoButton = initToolbarButton(northToolbar,
+                SokobanPropertyType.UNDO_IMG_NAME);
+        //setTooltip(undoButton, SokobanPropertyType.HELP_TOOLTIP);
+        undoButton.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent event) {
+                // TODO Auto-generated method stub
+                eventHandler
+                        .respondToSwitchScreenRequest(SokobanUIState.VIEW_HELP_STATE);
+            }
+
+        });
+        
         // MAKE AND INIT THE STATS BUTTON
         statsButton = initToolbarButton(northToolbar,
                 SokobanPropertyType.STATS_IMG_NAME);
@@ -310,31 +326,17 @@ public class SokobanUI extends Pane {
             }
 
         });
-        // MAKE AND INIT THE HELP BUTTON
-        helpButton = initToolbarButton(northToolbar,
-                SokobanPropertyType.HELP_IMG_NAME);
-        //setTooltip(helpButton, SokobanPropertyType.HELP_TOOLTIP);
-        helpButton.setOnAction(new EventHandler<ActionEvent>() {
+
+        // MAKE AND INIT THE TIME BUTTON
+        timeButton = initToolbarButton(northToolbar,
+                SokobanPropertyType.TIME_IMG_NAME);
+        //setTooltip(timeButton, SokobanPropertyType.EXIT_TOOLTIP);
+        timeButton.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent event) {
                 // TODO Auto-generated method stub
-                eventHandler
-                        .respondToSwitchScreenRequest(SokobanUIState.VIEW_HELP_STATE);
-            }
-
-        });
-
-        // MAKE AND INIT THE EXIT BUTTON
-        exitButton = initToolbarButton(northToolbar,
-                SokobanPropertyType.EXIT_IMG_NAME);
-        //setTooltip(exitButton, SokobanPropertyType.EXIT_TOOLTIP);
-        exitButton.setOnAction(new EventHandler<ActionEvent>() {
-
-            @Override
-            public void handle(ActionEvent event) {
-                // TODO Auto-generated method stub
-                eventHandler.respondToExitRequest(primaryStage);
+                //eventHandler.respondToExitRequest(primaryStage);
             }
 
         });
