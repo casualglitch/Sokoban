@@ -223,7 +223,7 @@ public class SokobanUI extends Pane {
                 }
             });
             Text label = new Text("LEVEL " + (i+1));
-            label.setFont(Font.font("Tahoma", FontWeight.BOLD, 35));
+            label.setFont(Font.font("Tahoma", FontWeight.BOLD, 39));
             // TODO
             //levelSelectionPane.getChildren().add(levelButton);
             // TODO: enable only the first level
@@ -238,6 +238,7 @@ public class SokobanUI extends Pane {
             }
         }
         splashScreenPane.getChildren().add(grid);
+        splashScreenPane.setLayoutY(-200);
         mainPane.setCenter(splashScreenPane);
         //mainPane.setBottom(levelSelectionPane);
     }
@@ -405,14 +406,18 @@ public class SokobanUI extends Pane {
      */
     public void changeWorkspace(SokobanUIState uiScreen) {
         switch (uiScreen) {
+            case SPLASH_SCREEN_STATE:
+                mainPane.getChildren().clear();
+                initSplashScreen();
+                break;
             case VIEW_HELP_STATE:
-                mainPane.setCenter(helpPanel);
+                //mainPane.setCenter(helpPanel);
                 break;
             case PLAY_GAME_STATE:
                 mainPane.setCenter(gamePanel);
                 break;
             case VIEW_STATS_STATE:
-                mainPane.setCenter(statsScrollPane);
+                //mainPane.setCenter(statsScrollPane);
                 break;
             default:
         }
