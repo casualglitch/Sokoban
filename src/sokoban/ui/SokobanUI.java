@@ -22,6 +22,8 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -39,12 +41,15 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+import javax.sound.sampled.AudioSystem;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 
@@ -74,6 +79,7 @@ public class SokobanUI extends Pane {
     private Label splashScreenImageLabel;
     private HBox levelSelectionPane;
     private ArrayList<Button> levelButtons;
+    private Media audio;
 
     // NorthToolBar
     private HBox northToolbar;
@@ -88,6 +94,8 @@ public class SokobanUI extends Pane {
     private HBox letterButtonsPane;
     private HashMap<Character, Button> letterButtons;
     private BorderPane gamePanel = new BorderPane();
+    private GraphicsContext gc;
+    private GridRenderer gr;
 
     //StatsPane
     private ScrollPane statsScrollPane;
@@ -164,7 +172,6 @@ public class SokobanUI extends Pane {
     }
 
     public void initSplashScreen() {
-
         // INIT THE SPLASH SCREEN CONTROLS
         PropertiesManager props = PropertiesManager.getPropertiesManager();
         String splashScreenImagePath = props
@@ -219,7 +226,7 @@ public class SokobanUI extends Pane {
                 public void handle(ActionEvent event) {
                     // TODO
                     //eventHandler.respondToSelectLevelRequest(level);
-                    eventHandler.respondToNewGameRequest();
+                    eventHandler.respondToNewGameRequest(level);
                 }
             });
             Text label = new Text("LEVEL " + (i+1));
@@ -241,6 +248,8 @@ public class SokobanUI extends Pane {
         splashScreenPane.setLayoutY(-200);
         mainPane.setCenter(splashScreenPane);
         //mainPane.setBottom(levelSelectionPane);
+        //audio = new Media("http://www.123rf.com/audio_27651314_light-instrumental-music-with-keyboards-funk-guitar-bass-and-drum-bright-melody-loops-of-various-key.html");
+        //playAudio();
     }
 
     /**
@@ -391,8 +400,8 @@ public class SokobanUI extends Pane {
         //mainPane.getChildren().add(workspace);
         System.out.println("in the initWorkspace");
     }
-
-
+    
+    
     public Image loadImage(String imageName) {
         Image img = new Image(ImgPath + imageName);
         return img;
@@ -411,18 +420,119 @@ public class SokobanUI extends Pane {
                 initSplashScreen();
                 break;
             case VIEW_HELP_STATE:
-                //mainPane.setCenter(helpPanel);
+                //TODO
+                mainPane.setCenter(helpPanel);
                 break;
             case PLAY_GAME_STATE:
-                mainPane.setCenter(gamePanel);
+                initGameScreen();
+                mainPane.setCenter(gamePanel); // or renderer??
                 break;
             case VIEW_STATS_STATE:
-                //mainPane.setCenter(statsScrollPane);
+                //TODO
+                mainPane.setCenter(statsScrollPane);
                 break;
             default:
         }
-
     }
+    
+    public void initGameScreen() {
+        gr = new GridRenderer();
+        gamePanel.setCenter(gr);     
+        workspace.getChildren().add(gamePanel);
+        System.out.println("in the initgamePane");
+    }
+    
+    public GridRenderer getGrid() {
+        return gr;
+    }
+    
+    /**
+     * This class renders the grid for us. Note that we also listen for mouse
+     * clicks and key presses on it.
+     */
+    class GridRenderer extends Canvas {
+        // PIXEL DIMENSIONS OF EACH CELL
+        int cellWidth;
+        int cellHeight;
 
+        // images
+        Image wallImage = new Image("file:images/wall.png");
+        Image boxImage = new Image("file:images/box.png");
+        Image placeImage = new Image("file:images/place.png");
+        Image sokobanImage = new Image("file:images/Sokoban.png");
+        int gridColumns = 10;
+        int gridRows = 10;
+        int[][] grid;
 
+        /**
+         * Default constructor.
+         */
+        public GridRenderer() {
+            this.setWidth(500);
+            this.setHeight(500);
+            grid = new int[gridColumns][gridRows];
+            repaint();
+        }
+        
+        public void repaint() {
+            gc = this.getGraphicsContext2D();
+            gc.clearRect(0, 0, this.getWidth(), this.getHeight());
+
+            // CALCULATE THE GRID CELL DIMENSIONS
+            int w = (int) (this.getWidth() / gridColumns);
+            int h = (int) (this.getHeight() / gridRows);
+
+            gc = this.getGraphicsContext2D();
+
+            // NOW RENDER EACH CELL
+            int x = 0, y = 0;
+            for (int i = 0; i < gridColumns; i++) {
+                y = 0;
+                for (int j = 0; j < gridRows; j++) {
+                    // DRAW THE CELL
+                    gc.setFill(Color.LIGHTBLUE);
+                    //gc.strokeRoundRect(x, y, w, h, 10, 10);
+                    switch (grid[i][j]) {
+                        case 0:
+                            //gc.strokeRoundRect(x, y, w, h, 10, 10);
+                            gc.clearRect(x, y, w, h);
+                            break;
+                        case 1:
+                            gc.drawImage(wallImage, x, y, w, h);
+                            break;
+                        case 2:
+                            gc.drawImage(boxImage, x, y, w, h);
+                            break;
+                        case 3:
+                            gc.drawImage(placeImage, x, y, w, h);
+                            break;
+                        case 4:
+                            gc.drawImage(sokobanImage, x, y, w, h);
+                            break;
+                    }
+
+                    // THEN RENDER THE TEXT
+                    //String numToDraw = "" + grid[i][j];
+                    double xInc = (w / 2) - (10 / 2);
+                    double yInc = (h / 2) + (10 / 4);
+                    x += xInc;
+                    y += yInc;
+                    gc.setFill(Color.RED);
+                    //gc.fillText(numToDraw, x, y);
+                    x -= xInc;
+                    y -= yInc;
+
+                    // ON TO THE NEXT ROW
+                    y += h;
+                }
+                // ON TO THE NEXT COLUMN
+                x += w;
+            }
+        }
+    }
+    
+    public void playAudio() {
+        MediaPlayer mediaPlayer = new MediaPlayer(audio);
+        mediaPlayer.play();
+    }
 }

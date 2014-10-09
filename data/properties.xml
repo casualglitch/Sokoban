@@ -49,11 +49,5 @@
             <option>level6.sok</option>
             <option>level7.sok</option>
         </property_options>
-        <property_options name="TOOLBAR_IMAGE_NAMES">
-            <option>Back.png</option>
-            <option>Stats.png</option>
-            <option>Undo.png</option>
-            <option>Time.png</option>
-        </property_options>
     </property_options_list>
 </properties>

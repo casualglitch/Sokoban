@@ -11,14 +11,25 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import application.Main.SokobanPropertyType;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import properties_manager.PropertiesManager;
 import xml_utilities.InvalidXMLFileFormatException;
 import sokoban.file.SokobanFileLoader;
 import sokoban.game.SokobanGameStateManager;
+import sokoban.ui.SokobanUI.GridRenderer;
 
 public class SokobanEventHandler {
 
     private SokobanUI ui;
+    
 
     /**
      * Constructor that simply saves the ui for later.
@@ -44,10 +55,42 @@ public class SokobanEventHandler {
     /**
      * This method responds to when the user presses the new game method.
      */
-    public void respondToNewGameRequest() {
+    public void respondToNewGameRequest(String level) {
         SokobanGameStateManager gsm = ui.getGSM();
         gsm.startNewGame();
         ui.initSokobanUI();
+        String levelNum = level;
+        String fileName = "data/"+levelNum+".sok";
+        File fileToOpen = new File(fileName);
+        try {
+            byte[] bytes = new byte[Long.valueOf(fileToOpen.length()).intValue()];
+            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+            FileInputStream fis = new FileInputStream(fileToOpen);
+            BufferedInputStream bis = new BufferedInputStream(fis);
+            
+            bis.read(bytes);
+            bis.close();
+            DataInputStream dis = new DataInputStream(bais);
+            
+            int initGridCols = dis.readInt();
+            int initGridRows = dis.readInt();
+            int[][] newGrid = new int[initGridCols][initGridRows];
+            
+            for (int i = 0; i < initGridCols; i++) {
+                for (int j = 0; j < initGridRows; j++) {
+                    newGrid[i][j] = dis.readInt();
+                    //System.out.println(dis.readInt());
+                }
+            }
+            GridRenderer gr = ui.getGrid();
+            gr.grid = newGrid;
+            gr.gridColumns = initGridCols;
+            gr.gridRows = initGridRows;
+            gr.repaint();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
     }
     
     /**
