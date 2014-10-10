@@ -16,9 +16,14 @@ import sokoban.file.SokobanFileLoader;
 import sokoban.game.SokobanGameData;
 import sokoban.game.SokobanGameStateManager;
 import application.Main.SokobanPropertyType;
-import java.util.Stack;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
+import javafx.animation.AnimationTimer;
 import properties_manager.PropertiesManager;
-import javafx.embed.swing.SwingNode;
+import java.lang.Thread;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -34,6 +39,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BorderPane;
@@ -75,7 +81,7 @@ public class SokobanUI extends Pane {
     // mainPane
     private BorderPane mainPane;
     private BorderPane hmPane;
-    
+
     // SplashScreen
     private ImageView splashScreenImageView;
     private StackPane splashScreenPane;
@@ -90,6 +96,8 @@ public class SokobanUI extends Pane {
     private Button statsButton;
     private Button undoButton;
     private Button timeButton;
+    private Label time = new Label();
+    private Integer startTime = 0;
 
     // GamePane
     private Label SokobanLabel;
@@ -99,7 +107,7 @@ public class SokobanUI extends Pane {
     private BorderPane gamePanel = new BorderPane();
     private GraphicsContext gc;
     private GridRenderer gr;
-    private Stack history = new Stack();
+    ArrayList<int[][]> undo = new ArrayList<int[][]>();
 
     // images
     final Image wallImage = new Image("file:images/wall.png");
@@ -191,7 +199,7 @@ public class SokobanUI extends Pane {
 
         //splashScreenPane = new FlowPane();
         splashScreenPane = new StackPane();
-        
+
         Image splashScreenImage = loadImage(splashScreenImagePath);
         splashScreenImageView = new ImageView(splashScreenImage);
 
@@ -228,7 +236,7 @@ public class SokobanUI extends Pane {
             // AND BUILD THE BUTTON
             Button levelButton = new Button();
             levelButton.setGraphic(levelImageView);
-            
+
             // CONNECT THE BUTTON TO THE EVENT HANDLER
             levelButton.setOnAction(new EventHandler<ActionEvent>() {
 
@@ -239,17 +247,16 @@ public class SokobanUI extends Pane {
                     eventHandler.respondToNewGameRequest(level);
                 }
             });
-            Text label = new Text("LEVEL " + (i+1));
+            Text label = new Text("LEVEL " + (i + 1));
             label.setFont(Font.font("Tahoma", FontWeight.BOLD, 39));
             // TODO
             //levelSelectionPane.getChildren().add(levelButton);
             // TODO: enable only the first level
             //levelButton.setDisable(true);
-            if (i>=5) {
-                grid.add(levelButton, i-5, 3);
-                grid.add(label, i-5, 2);
-            }
-            else {
+            if (i >= 5) {
+                grid.add(levelButton, i - 5, 3);
+                grid.add(label, i - 5, 2);
+            } else {
                 grid.add(levelButton, i, 1);
                 grid.add(label, i, 0);
             }
@@ -270,7 +277,7 @@ public class SokobanUI extends Pane {
         // FIRST REMOVE THE SPLASH SCREEN
         //mainPane.getChildren().clear();
         mainPane.setCenter(null);
-        
+
         // GET THE UPDATED TITLE
         PropertiesManager props = PropertiesManager.getPropertiesManager();
         String title = props.getProperty(SokobanPropertyType.GAME_TITLE_TEXT);
@@ -330,7 +337,7 @@ public class SokobanUI extends Pane {
             }
 
         });
-        
+
         // MAKE AND INIT THE STATS BUTTON
         statsButton = initToolbarButton(northToolbar,
                 SokobanPropertyType.STATS_IMG_NAME);
@@ -410,8 +417,7 @@ public class SokobanUI extends Pane {
         //mainPane.getChildren().add(workspace);
         //System.out.println("in the initWorkspace");
     }
-    
-    
+
     public Image loadImage(String imageName) {
         Image img = new Image(ImgPath + imageName);
         return img;
@@ -431,7 +437,7 @@ public class SokobanUI extends Pane {
                 break;
             case VIEW_HELP_STATE:
                 //TODO
-                mainPane.setCenter(helpPanel);
+                undo();
                 break;
             case PLAY_GAME_STATE:
                 initGameScreen();
@@ -444,52 +450,134 @@ public class SokobanUI extends Pane {
             default:
         }
     }
-    
+
     public void initGameScreen() {
         gr = new GridRenderer();
-        gamePanel.setCenter(gr);     
+        gamePanel.setCenter(gr);
         workspace.getChildren().add(gamePanel);
+        int sokoban = 4, wall = 1, box = 2, hole = 3, empty = 0;
+        mainPane.setOnMousePressed(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent me) {
+
+            }
+        });
+        gr.setOnMouseClicked(me1 -> {
+            int[][] grid = gr.grid;
+            // FIGURE OUT THE CORRESPONDING COLUMN & ROW
+            double w = gr.getWidth() / gr.gridColumns;
+            double col = me1.getX() / w;
+            double h = gr.getHeight() / gr.gridRows;
+            double row = me1.getY() / h;
+            // GET THE VALUE IN THAT CELL
+            int value1 = gr.grid[(int) col][(int) row];
+            if (value1 == sokoban) { //sokoban
+                gr.setOnMouseClicked((MouseEvent me2) -> {
+                    double w2 = gr.getWidth() / gr.gridColumns;
+                    double col2 = me2.getX() / w2;
+                    double h2 = gr.getHeight() / gr.gridRows;
+                    double row2 = me2.getY() / h2;
+                    int value2 = gr.grid[(int) col2][(int) row2];
+                    //2nd value=up
+                    if (value2 == gr.grid[(int) col][(int) row - 1]) {
+                        switch (value2) {
+                            case 0: //empty, move up
+                                undo.add(grid);
+                                grid[(int) col][(int) row - 1] = sokoban; //space up replaced by soko
+                                grid[(int) col][(int) row] = empty; //then, soko = blank
+                                break;
+                            case 1: //wall
+                                playAudio(block);
+                                break;
+                            case 2: //box, move soko up & move box up
+                                if (grid[(int) col][(int) row - 2] == hole || grid[(int) col][(int) row - 2] == empty) { //2 spaces beyond avail
+                                    undo.add(grid); //grid[i-2][j] <= box & grid[i-1][j] <= soko
+                                    grid[(int) col][(int) row - 2] = value2; //two ahead is box  
+                                    grid[(int) col][(int) row - 1] = sokoban; //box is soko
+                                    grid[(int) col][(int) row] = empty; //soko is empty or hole???
+                                } else if (grid[(int) col][(int) row - 2] == box || grid[(int) col][(int) row - 2] == wall) { //2 spaces is a box OR wall
+                                    playAudio(block);
+                                }
+                                break;
+                            case 3: //hole, move up
+                                undo.add(grid);
+                                grid[(int) col][(int) row - 1] = sokoban; //space up replaced by soko
+                                grid[(int) col][(int) row] = hole; //then, soko = hole
+                                break;
+                        }
+                        gr.grid = grid;
+                        gr.repaint();
+                    }
+                    //2nd value = down
+                    if (value2 == gr.grid[(int) col][(int) row + 1]) {
+                        switch (value2) {
+                            case 0: //empty, move up
+                                undo.add(grid);
+                                grid[(int) col][(int) row + 1] = sokoban; //space up replaced by soko
+                                grid[(int) col][(int) row] = empty; //then, soko = blank
+                                break;
+                            case 1: //wall
+                                playAudio(block);
+                                break;
+                            case 2: //box, move soko up & move box up
+                                if (grid[(int) col][(int) row + 2] == hole || grid[(int) col][(int) row + 2] == empty) { //2 spaces beyond avail
+                                    undo.add(grid); //grid[i-2][j] <= box & grid[i-1][j] <= soko
+                                    grid[(int) col][(int) row + 2] = value2; //two ahead is box  
+                                    grid[(int) col][(int) row + 1] = sokoban; //box is soko
+                                    grid[(int) col][(int) row] = empty; //soko is empty or hole???
+                                } else if (grid[(int) col][(int) row + 2] == box || grid[(int) col][(int) row + 2] == wall) { //2 spaces is a box OR wall
+                                    playAudio(block);
+                                }
+                                break;
+                            case 3: //hole, move up
+                                undo.add(grid);
+                                grid[(int) col][(int) row + 1] = sokoban; //space up replaced by soko
+                                grid[(int) col][(int) row] = hole; //then, soko = hole
+                                break;
+                        }
+                        gr.grid = grid;
+                        gr.repaint();
+                    }
+                    //2nd value = left
+                    //2nd value = right
+                });
+            }
+        });
         mainPane.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent ke) {
                 // TODO Auto-generated method stub
-                int sokoban = 4, wall = 1, box = 2, hole = 3, empty = 0;
-                int[][] prevGrid = gr.grid;
-                int[][] grid = prevGrid;
-                if (ke.getCode() == KeyCode.U) {
-                    
-                }
+                //int[][] prevGrid = gr.grid;
+                int[][] grid = gr.grid; //newgrid
                 if (ke.getCode() == KeyCode.UP) {
                     System.out.println("up");
                     outerloop:
                     for (int i = 0; i < gr.gridColumns; i++) {
                         for (int j = 0; j < gr.gridRows; j++) {
                             if (grid[i][j] == sokoban) {
-                                switch(grid[i][j-1]) {
+                                switch (grid[i][j - 1]) {
                                     case 0: //empty, move up
-                                        grid[i][j-1] = sokoban; //space up replaced by soko
+                                        undo.add(grid);
+                                        grid[i][j - 1] = sokoban; //space up replaced by soko
                                         grid[i][j] = empty; //then, soko = blank
-                                        history.push(prevGrid); //SAVE 
                                         break outerloop;
                                     case 1: //wall
-                                        //TODO: play block sound
+                                        playAudio(block);
                                         break outerloop; //don't move
                                     case 2: //box, move soko up & move box up
-                                        if (grid[i][j-2] == hole || grid[i][j-2] == empty ) { //2 spaces beyond avail
-                                            //grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                            grid[i][j-2] = grid[i][j-1]; //two ahead is box  
-                                            grid[i][j-1] = sokoban; //box is soko
+                                        if (grid[i][j - 2] == hole || grid[i][j - 2] == empty) { //2 spaces beyond avail
+                                            undo.add(grid); //grid[i-2][j] <= box & grid[i-1][j] <= soko
+                                            grid[i][j - 2] = grid[i][j - 1]; //two ahead is box  
+                                            grid[i][j - 1] = sokoban; //box is soko
                                             grid[i][j] = empty; //soko is empty or hole???
-                                            history.push(prevGrid); //SAVE 
-                                        }
-                                        else if (grid[i][j-2] == box || grid[i][j-2] == wall) { //2 spaces is a box OR wall
-                                            //TODO: play block sound
+                                        } else if (grid[i][j - 2] == box || grid[i][j - 2] == wall) { //2 spaces is a box OR wall
+                                            playAudio(block);
                                         }
                                         break outerloop;
                                     case 3: //hole, move up
-                                        grid[i][j-1] = sokoban; //space up replaced by soko
+                                        undo.add(grid);
+                                        grid[i][j - 1] = sokoban; //space up replaced by soko
                                         grid[i][j] = hole; //then, soko = hole
-                                        history.push(prevGrid); //SAVE 
                                         break outerloop;
                                 }
                             }
@@ -504,31 +592,29 @@ public class SokobanUI extends Pane {
                     for (int i = 0; i < gr.gridColumns; i++) {
                         for (int j = 0; j < gr.gridRows; j++) {
                             if (grid[i][j] == sokoban) {
-                                switch(grid[i][j+1]) {
+                                switch (grid[i][j + 1]) {
                                     case 0: //empty, move up
-                                        grid[i][j+1] = sokoban; //space up replaced by soko
+                                        undo.add(grid);
+                                        grid[i][j + 1] = sokoban; //space up replaced by soko
                                         grid[i][j] = empty; //then, soko = blank
-                                        history.push(prevGrid); //SAVE 
                                         break outerloop;
                                     case 1: //wall
-                                        //TODO: play block sound
+                                        playAudio(block);
                                         break outerloop; //don't move
                                     case 2: //box, move soko up & move box up
-                                        if (grid[i][j+2] == hole || grid[i][j+2] == empty ) { //2 spaces beyond avail
-                                            //grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                            grid[i][j+2] = grid[i][j+1]; //two ahead is box  
-                                            grid[i][j+1] = sokoban; //box is soko
+                                        if (grid[i][j + 2] == hole || grid[i][j + 2] == empty) { //2 spaces beyond avail
+                                            undo.add(grid);//grid[i-2][j] <= box & grid[i-1][j] <= soko
+                                            grid[i][j + 2] = grid[i][j + 1]; //two ahead is box  
+                                            grid[i][j + 1] = sokoban; //box is soko
                                             grid[i][j] = empty; //soko is empty or hole???
-                                            history.push(prevGrid); //SAVE 
-                                        }
-                                        else if (grid[i][j+2] == box || grid[i][j+2] == wall) { //2 spaces is a box OR wall
-                                            //TODO: play block sound
+                                        } else if (grid[i][j + 2] == box || grid[i][j + 2] == wall) { //2 spaces is a box OR wall
+                                            playAudio(block);
                                         }
                                         break outerloop;
                                     case 3: //hole, move up
-                                        grid[i][j+1] = sokoban; //space up replaced by soko
+                                        undo.add(grid);
+                                        grid[i][j + 1] = sokoban; //space up replaced by soko
                                         grid[i][j] = hole; //then, soko = hole
-                                        history.push(prevGrid); //SAVE 
                                         break outerloop;
                                 }
                             }
@@ -543,31 +629,29 @@ public class SokobanUI extends Pane {
                     for (int i = 0; i < gr.gridColumns; i++) {
                         for (int j = 0; j < gr.gridRows; j++) {
                             if (grid[i][j] == sokoban) {
-                                switch(grid[i-1][j]) {
+                                switch (grid[i - 1][j]) {
                                     case 0: //empty, move up
-                                        grid[i-1][j] = sokoban; //space up replaced by soko
+                                        undo.add(grid);
+                                        grid[i - 1][j] = sokoban; //space up replaced by soko
                                         grid[i][j] = empty; //then, soko = blank
-                                        history.push(prevGrid); //SAVE 
                                         break outerloop;
                                     case 1: //wall
-                                        //TODO: play block sound
+                                        playAudio(block);
                                         break outerloop; //don't move
                                     case 2: //box, move soko up & move box up
-                                        if (grid[i-2][j] == hole || grid[i-2][j] == empty ) { //2 spaces beyond avail
-                                            //grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                            grid[i-2][j] = grid[i-1][j]; //two ahead is box  
-                                            grid[i-1][j] = sokoban; //box is soko
+                                        if (grid[i - 2][j] == hole || grid[i - 2][j] == empty) { //2 spaces beyond avail
+                                            undo.add(grid);//grid[i-2][j] <= box & grid[i-1][j] <= soko
+                                            grid[i - 2][j] = grid[i - 1][j]; //two ahead is box  
+                                            grid[i - 1][j] = sokoban; //box is soko
                                             grid[i][j] = empty; //soko is empty or hole???
-                                            history.push(prevGrid); //SAVE 
-                                        }
-                                        else if (grid[i-2][j] == box || grid[i-2][j] == wall) { //2 spaces is a box OR wall
-                                            //TODO: play block sound
+                                        } else if (grid[i - 2][j] == box || grid[i - 2][j] == wall) { //2 spaces is a box OR wall
+                                            playAudio(block);
                                         }
                                         break outerloop;
                                     case 3: //hole, move up
-                                        grid[i-1][j] = sokoban; //space up replaced by soko
+                                        undo.add(grid);
+                                        grid[i - 1][j] = sokoban; //space up replaced by soko
                                         grid[i][j] = hole; //then, soko = hole
-                                        history.push(prevGrid); //SAVE 
                                         break outerloop;
                                 }
                             }
@@ -582,31 +666,29 @@ public class SokobanUI extends Pane {
                     for (int i = 0; i < gr.gridColumns; i++) {
                         for (int j = 0; j < gr.gridRows; j++) {
                             if (grid[i][j] == sokoban) {
-                                switch(grid[i+1][j]) {
+                                switch (grid[i + 1][j]) {
                                     case 0: //empty, move up
-                                        grid[i+1][j] = sokoban; //space up replaced by soko
+                                        undo.add(grid);
+                                        grid[i + 1][j] = sokoban; //space up replaced by soko
                                         grid[i][j] = empty; //then, soko = blank
-                                        history.push(prevGrid); //SAVE 
                                         break outerloop;
                                     case 1: //wall
-                                        //TODO: play block sound
+                                        playAudio(block);
                                         break outerloop; //don't move
                                     case 2: //box, move soko up & move box up
-                                        if (grid[i+2][j] == hole || grid[i+2][j] == empty ) { //2 spaces beyond avail
-                                            //grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                            grid[i+2][j] = grid[i+1][j]; //two ahead is box  
-                                            grid[i+1][j] = sokoban; //box is soko
+                                        if (grid[i + 2][j] == hole || grid[i + 2][j] == empty) { //2 spaces beyond avail
+                                            undo.add(grid);//grid[i-2][j] <= box & grid[i-1][j] <= soko
+                                            grid[i + 2][j] = grid[i + 1][j]; //two ahead is box  
+                                            grid[i + 1][j] = sokoban; //box is soko
                                             grid[i][j] = empty; //soko is empty or hole???
-                                            history.push(prevGrid); //SAVE 
-                                        }
-                                        else if (grid[i+2][j] == box || grid[i+2][j] == wall) { //2 spaces is a box OR wall
-                                            //TODO: play block sound
+                                        } else if (grid[i + 2][j] == box || grid[i + 2][j] == wall) { //2 spaces is a box OR wall
+                                            playAudio(block);
                                         }
                                         break outerloop;
                                     case 3: //hole, move up
-                                        grid[i+1][j] = sokoban; //space up replaced by soko
+                                        undo.add(grid);
+                                        grid[i + 1][j] = sokoban; //space up replaced by soko
                                         grid[i][j] = hole; //then, soko = hole
-                                        history.push(prevGrid); //SAVE 
                                         break outerloop;
                                 }
                             }
@@ -615,19 +697,25 @@ public class SokobanUI extends Pane {
                     gr.grid = grid;
                     gr.repaint();
                 }
+                if (ke.getCode() == KeyCode.U) {
+                    //gr.grid = grid;
+                    //gr.repaint();
+                    undo();
+                }
             }
         });
     }
-    
+
     public GridRenderer getGrid() {
         return gr;
     }
-    
+
     /**
      * This class renders the grid for us. Note that we also listen for mouse
      * clicks and key presses on it.
      */
     class GridRenderer extends Canvas {
+
         // PIXEL DIMENSIONS OF EACH CELL
         int cellWidth;
         int cellHeight;
@@ -644,7 +732,7 @@ public class SokobanUI extends Pane {
             grid = new int[gridColumns][gridRows];
             repaint();
         }
-        
+
         public void repaint() {
             gc = this.getGraphicsContext2D();
             gc.clearRect(0, 0, this.getWidth(), this.getHeight());
@@ -695,9 +783,21 @@ public class SokobanUI extends Pane {
             }
         }
     }
-    
-    public void playAudio() {
-        MediaPlayer mediaPlayer = new MediaPlayer(audio);
-        mediaPlayer.play();
+
+    public void undo() {
+        if (undo.isEmpty() == false) {
+            System.out.println("u");
+            gr.grid = undo.remove(undo.size() - 1);
+            //gr.grid = prevGrid;
+            System.out.println(gr.grid.toString());
+            gr.repaint();
+        }
+    }
+
+    final Media block = new Media(new File("audio/block.wav").toURI().toString());
+    public void playAudio(Media media) {
+        media = block;
+        MediaPlayer audio = new MediaPlayer(media);
+        audio.play();
     }
 }
