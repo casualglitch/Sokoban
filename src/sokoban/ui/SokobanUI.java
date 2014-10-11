@@ -566,6 +566,9 @@ public class SokobanUI extends Pane {
                 if (isWin()) {
                     playAudio(yay);
                     eventHandler.respondToWin(primaryStage);
+                    while (undo.empty() == false) {
+                        undo.pop();
+                    }
                 }
                 if (isLose()) {
                     //System.out.println("lose");
