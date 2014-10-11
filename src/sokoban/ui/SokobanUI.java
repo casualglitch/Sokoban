@@ -24,6 +24,7 @@ import java.util.TimerTask;
 import javafx.animation.AnimationTimer;
 import properties_manager.PropertiesManager;
 import java.lang.Thread;
+import java.util.Stack;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -107,7 +108,7 @@ public class SokobanUI extends Pane {
     private BorderPane gamePanel = new BorderPane();
     private GraphicsContext gc;
     private GridRenderer gr;
-    ArrayList<int[][]> undo = new ArrayList<int[][]>();
+    Stack<int[][]> undo = new Stack<int[][]>();
 
     // images
     final Image wallImage = new Image("file:images/wall.png");
@@ -462,128 +463,228 @@ public class SokobanUI extends Pane {
 
             }
         });
-        gr.setOnMouseClicked(me1 -> {
-            int[][] grid = gr.grid;
-            // FIGURE OUT THE CORRESPONDING COLUMN & ROW
-            double w = gr.getWidth() / gr.gridColumns;
-            double col = me1.getX() / w;
-            double h = gr.getHeight() / gr.gridRows;
-            double row = me1.getY() / h;
-            // GET THE VALUE IN THAT CELL
-            int value1 = gr.grid[(int) col][(int) row];
-            if (value1 == sokoban) { //sokoban
-                gr.setOnMouseClicked((MouseEvent me2) -> {
-                    double w2 = gr.getWidth() / gr.gridColumns;
-                    double col2 = me2.getX() / w2;
-                    double h2 = gr.getHeight() / gr.gridRows;
-                    double row2 = me2.getY() / h2;
-                    int value2 = gr.grid[(int) col2][(int) row2];
-                    //2nd value=up
-                    if (value2 == gr.grid[(int) col][(int) row - 1]) {
-                        switch (value2) {
-                            case 0: //empty, move up
-                                undo.add(grid);
-                                grid[(int) col][(int) row - 1] = sokoban; //space up replaced by soko
-                                grid[(int) col][(int) row] = empty; //then, soko = blank
-                                break;
-                            case 1: //wall
-                                playAudio(block);
-                                break;
-                            case 2: //box, move soko up & move box up
-                                if (grid[(int) col][(int) row - 2] == hole || grid[(int) col][(int) row - 2] == empty) { //2 spaces beyond avail
-                                    undo.add(grid); //grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                    grid[(int) col][(int) row - 2] = value2; //two ahead is box  
-                                    grid[(int) col][(int) row - 1] = sokoban; //box is soko
-                                    grid[(int) col][(int) row] = empty; //soko is empty or hole???
-                                } else if (grid[(int) col][(int) row - 2] == box || grid[(int) col][(int) row - 2] == wall) { //2 spaces is a box OR wall
-                                    playAudio(block);
-                                }
-                                break;
-                            case 3: //hole, move up
-                                undo.add(grid);
-                                grid[(int) col][(int) row - 1] = sokoban; //space up replaced by soko
-                                grid[(int) col][(int) row] = hole; //then, soko = hole
-                                break;
-                        }
-                        gr.grid = grid;
-                        gr.repaint();
+        gr.setOnMousePressed(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent me1) {
+                int[][] grid = new int[gr.gridColumns][gr.gridRows];//newgrid
+                for (int i = 0; i < gr.gridColumns; i++) {
+                    for (int j = 0; j < gr.gridRows; j++) {
+                        grid[i][j] = gr.grid[i][j];
                     }
-                    //2nd value = down
-                    if (value2 == gr.grid[(int) col][(int) row + 1]) {
-                        switch (value2) {
-                            case 0: //empty, move up
-                                undo.add(grid);
-                                grid[(int) col][(int) row + 1] = sokoban; //space up replaced by soko
-                                grid[(int) col][(int) row] = empty; //then, soko = blank
-                                break;
-                            case 1: //wall
-                                playAudio(block);
-                                break;
-                            case 2: //box, move soko up & move box up
-                                if (grid[(int) col][(int) row + 2] == hole || grid[(int) col][(int) row + 2] == empty) { //2 spaces beyond avail
-                                    undo.add(grid); //grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                    grid[(int) col][(int) row + 2] = value2; //two ahead is box  
-                                    grid[(int) col][(int) row + 1] = sokoban; //box is soko
-                                    grid[(int) col][(int) row] = empty; //soko is empty or hole???
-                                } else if (grid[(int) col][(int) row + 2] == box || grid[(int) col][(int) row + 2] == wall) { //2 spaces is a box OR wall
-                                    playAudio(block);
+                }
+                // FIGURE OUT THE CORRESPONDING COLUMN & ROW
+                double w = gr.getWidth() / gr.gridColumns;
+                double col = me1.getX() / w;
+                double h = gr.getHeight() / gr.gridRows;
+                double row = me1.getY() / h;
+                // GET THE VALUE IN THAT CELL
+                int value1 = gr.grid[(int) col][(int) row];
+                if (value1 == sokoban) { //sokoban
+                    gr.setOnMouseReleased((MouseEvent me2) -> {
+                        double w2 = gr.getWidth() / gr.gridColumns;
+                        double col2 = me2.getX() / w2;
+                        double h2 = gr.getHeight() / gr.gridRows;
+                        double row2 = me2.getY() / h2;
+                        //2nd value=up
+                        if (value1 == gr.grid[(int) col2][(int) row2 + 1]) {
+                            System.out.println("up");
+                            outerloop:
+                            for (int i = 0; i < gr.gridColumns; i++) {
+                                for (int j = 0; j < gr.gridRows; j++) {
+                                    if (gr.grid[i][j] == sokoban) {
+                                        switch (gr.grid[i][j - 1]) {
+                                            case 0: //empty, move up
+                                                undo.push(grid);
+                                                gr.grid[i][j - 1] = sokoban; //space up replaced by soko
+                                                gr.grid[i][j] = empty; //then, soko = blank
+                                                break outerloop;
+                                            case 1: //wall
+                                                playAudio(block);
+                                                break outerloop; //don't move
+                                            case 2: //box, move soko up & move box up
+                                                if (gr.grid[i][j - 2] == hole || gr.grid[i][j - 2] == empty) { //2 spaces beyond avail
+                                                    undo.push(grid);
+                                                    gr.grid[i][j - 2] = gr.grid[i][j - 1]; //two ahead is box  
+                                                    gr.grid[i][j - 1] = sokoban; //box is soko
+                                                    gr.grid[i][j] = empty; //soko is empty or hole???
+                                                } else if (gr.grid[i][j - 2] == box || gr.grid[i][j - 2] == wall) { //2 spaces is a box OR wall
+                                                    playAudio(block);
+                                                }
+                                                break outerloop;
+                                            case 3: //hole, move up
+                                                undo.push(grid);
+                                                gr.grid[i][j - 1] = sokoban; //space up replaced by soko
+                                                gr.grid[i][j] = hole; //then, soko = hole
+                                                break outerloop;
+                                        }
+                                    }
                                 }
-                                break;
-                            case 3: //hole, move up
-                                undo.add(grid);
-                                grid[(int) col][(int) row + 1] = sokoban; //space up replaced by soko
-                                grid[(int) col][(int) row] = hole; //then, soko = hole
-                                break;
+                            }
+                            gr.repaint();
+                            me1.consume();
+                            me2.consume();
+                        } //2nd value = down
+                        else if (value1 == gr.grid[(int) col2][(int) row2 - 1]) {
+                            System.out.println("down");
+                            outerloop:
+                            for (int i = 0; i < gr.gridColumns; i++) {
+                                for (int j = 0; j < gr.gridRows; j++) {
+                                    if (gr.grid[i][j] == sokoban) {
+                                        switch (gr.grid[i][j + 1]) {
+                                            case 0: //empty, move up
+                                                undo.push(grid);
+                                                gr.grid[i][j + 1] = sokoban; //space up replaced by soko
+                                                gr.grid[i][j] = empty; //then, soko = blank
+                                                break outerloop;
+                                            case 1: //wall
+                                                playAudio(block);
+                                                break outerloop; //don't move
+                                            case 2: //box, move soko up & move box up
+                                                if (gr.grid[i][j + 2] == hole || gr.grid[i][j + 2] == empty) { //2 spaces beyond avail
+                                                    undo.push(grid);
+                                                    gr.grid[i][j + 2] = gr.grid[i][j + 1]; //two ahead is box  
+                                                    gr.grid[i][j + 1] = sokoban; //box is soko
+                                                    gr.grid[i][j] = empty; //soko is empty or hole???
+                                                } else if (gr.grid[i][j + 2] == box || gr.grid[i][j + 2] == wall) { //2 spaces is a box OR wall
+                                                    playAudio(block);
+                                                }
+                                                break outerloop;
+                                            case 3: //hole, move up
+                                                undo.push(grid);
+                                                gr.grid[i][j + 1] = sokoban; //space up replaced by soko
+                                                gr.grid[i][j] = hole; //then, soko = hole
+                                                break outerloop;
+                                        }
+                                    }
+                                }
+                            }
+                            gr.repaint();
+                            me1.consume();
+                            me2.consume();
+                        } //2nd value = left
+                        else if (value1 == gr.grid[(int) col2 + 1][(int) row2]) {
+                            System.out.println("left");
+                            outerloop:
+                            for (int i = 0; i < gr.gridColumns; i++) {
+                                for (int j = 0; j < gr.gridRows; j++) {
+                                    if (gr.grid[i][j] == sokoban) {
+                                        switch (gr.grid[i - 1][j]) {
+                                            case 0: //empty, move up
+                                                undo.push(grid);
+                                                gr.grid[i - 1][j] = sokoban; //space up replaced by soko
+                                                gr.grid[i][j] = empty; //then, soko = blank
+                                                break outerloop;
+                                            case 1: //wall
+                                                playAudio(block);
+                                                break outerloop; //don't move
+                                            case 2: //box, move soko up & move box up
+                                                if (gr.grid[i - 2][j] == hole || gr.grid[i - 2][j] == empty) { //2 spaces beyond avail
+                                                    undo.push(grid);//gr.grid[i-2][j] <= box & gr.grid[i-1][j] <= soko
+                                                    gr.grid[i - 2][j] = gr.grid[i - 1][j]; //two ahead is box  
+                                                    gr.grid[i - 1][j] = sokoban; //box is soko
+                                                    gr.grid[i][j] = empty; //soko is empty or hole???
+                                                } else if (gr.grid[i - 2][j] == box || gr.grid[i - 2][j] == wall) { //2 spaces is a box OR wall
+                                                    playAudio(block);
+                                                }
+                                                break outerloop;
+                                            case 3: //hole, move up
+                                                undo.push(grid);
+                                                gr.grid[i - 1][j] = sokoban; //space up replaced by soko
+                                                gr.grid[i][j] = hole; //then, soko = hole
+                                                break outerloop;
+                                        }
+                                    }
+                                }
+                            }
+                            gr.repaint();
+                            me1.consume();
+                            me2.consume();
+                        } //2nd value = right
+                        else if (value1 == gr.grid[(int) col2 - 1][(int) row2]) {
+                            System.out.println("right");
+                            outerloop:
+                            for (int i = 0; i < gr.gridColumns; i++) {
+                                for (int j = 0; j < gr.gridRows; j++) {
+                                    if (gr.grid[i][j] == sokoban) {
+                                        switch (gr.grid[i + 1][j]) {
+                                            case 0: //empty, move up
+                                                undo.push(grid);
+                                                gr.grid[i + 1][j] = sokoban; //space up replaced by soko
+                                                gr.grid[i][j] = empty; //then, soko = blank
+                                                break outerloop;
+                                            case 1: //wall
+                                                playAudio(block);
+                                                break outerloop; //don't move
+                                            case 2: //box, move soko up & move box up
+                                                if (gr.grid[i + 2][j] == hole || gr.grid[i + 2][j] == empty) { //2 spaces beyond avail
+                                                    undo.push(grid);//gr.grid[i-2][j] <= box & gr.grid[i-1][j] <= soko
+                                                    gr.grid[i + 2][j] = gr.grid[i + 1][j]; //two ahead is box  
+                                                    gr.grid[i + 1][j] = sokoban; //box is soko
+                                                    gr.grid[i][j] = empty; //soko is empty or hole???
+                                                } else if (gr.grid[i + 2][j] == box || gr.grid[i + 2][j] == wall) { //2 spaces is a box OR wall
+                                                    playAudio(block);
+                                                }
+                                                break outerloop;
+                                            case 3: //hole, move up
+                                                undo.push(grid);
+                                                gr.grid[i + 1][j] = sokoban; //space up replaced by soko
+                                                gr.grid[i][j] = hole; //then, soko = hole
+                                                break outerloop;
+                                        }
+                                    }
+                                }
+                            }
+                            gr.repaint();
                         }
-                        gr.grid = grid;
-                        gr.repaint();
-                    }
-                    //2nd value = left
-                    //2nd value = right
-                });
+                    });
+                }
             }
         });
+        //movement by arrow keys
         mainPane.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent ke) {
                 // TODO Auto-generated method stub
-                //int[][] prevGrid = gr.grid;
-                int[][] grid = gr.grid; //newgrid
+                int[][] grid = new int[gr.gridColumns][gr.gridRows]; //newgrid
+                for (int i = 0; i < gr.gridColumns; i++) {
+                    for (int j = 0; j < gr.gridRows; j++) {
+                        grid[i][j] = gr.grid[i][j];
+                    }
+                }
                 if (ke.getCode() == KeyCode.UP) {
                     System.out.println("up");
                     outerloop:
                     for (int i = 0; i < gr.gridColumns; i++) {
                         for (int j = 0; j < gr.gridRows; j++) {
-                            if (grid[i][j] == sokoban) {
-                                switch (grid[i][j - 1]) {
+                            if (gr.grid[i][j] == sokoban) {
+                                switch (gr.grid[i][j - 1]) {
                                     case 0: //empty, move up
-                                        undo.add(grid);
-                                        grid[i][j - 1] = sokoban; //space up replaced by soko
-                                        grid[i][j] = empty; //then, soko = blank
+                                        undo.push(grid);
+                                        gr.grid[i][j - 1] = sokoban; //space up replaced by soko
+                                        gr.grid[i][j] = empty; //then, soko = blank
                                         break outerloop;
                                     case 1: //wall
                                         playAudio(block);
                                         break outerloop; //don't move
                                     case 2: //box, move soko up & move box up
-                                        if (grid[i][j - 2] == hole || grid[i][j - 2] == empty) { //2 spaces beyond avail
-                                            undo.add(grid); //grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                            grid[i][j - 2] = grid[i][j - 1]; //two ahead is box  
-                                            grid[i][j - 1] = sokoban; //box is soko
-                                            grid[i][j] = empty; //soko is empty or hole???
-                                        } else if (grid[i][j - 2] == box || grid[i][j - 2] == wall) { //2 spaces is a box OR wall
+                                        if (gr.grid[i][j - 2] == hole || gr.grid[i][j - 2] == empty) { //2 spaces beyond avail
+                                            undo.push(grid);
+                                            gr.grid[i][j - 2] = gr.grid[i][j - 1]; //two ahead is box  
+                                            gr.grid[i][j - 1] = sokoban; //box is soko
+                                            gr.grid[i][j] = empty; //soko is empty or hole???
+                                        } else if (gr.grid[i][j - 2] == box || gr.grid[i][j - 2] == wall) { //2 spaces is a box OR wall
                                             playAudio(block);
                                         }
                                         break outerloop;
                                     case 3: //hole, move up
-                                        undo.add(grid);
-                                        grid[i][j - 1] = sokoban; //space up replaced by soko
-                                        grid[i][j] = hole; //then, soko = hole
+                                        undo.push(grid);
+                                        gr.grid[i][j - 1] = sokoban; //space up replaced by soko
+                                        gr.grid[i][j] = hole; //then, soko = hole
                                         break outerloop;
                                 }
                             }
                         }
                     }
-                    gr.grid = grid;
                     gr.repaint();
                 }
                 if (ke.getCode() == KeyCode.DOWN) {
@@ -591,36 +692,35 @@ public class SokobanUI extends Pane {
                     outerloop:
                     for (int i = 0; i < gr.gridColumns; i++) {
                         for (int j = 0; j < gr.gridRows; j++) {
-                            if (grid[i][j] == sokoban) {
-                                switch (grid[i][j + 1]) {
+                            if (gr.grid[i][j] == sokoban) {
+                                switch (gr.grid[i][j + 1]) {
                                     case 0: //empty, move up
-                                        undo.add(grid);
-                                        grid[i][j + 1] = sokoban; //space up replaced by soko
-                                        grid[i][j] = empty; //then, soko = blank
+                                        undo.push(grid);
+                                        gr.grid[i][j + 1] = sokoban; //space up replaced by soko
+                                        gr.grid[i][j] = empty; //then, soko = blank
                                         break outerloop;
                                     case 1: //wall
                                         playAudio(block);
                                         break outerloop; //don't move
                                     case 2: //box, move soko up & move box up
-                                        if (grid[i][j + 2] == hole || grid[i][j + 2] == empty) { //2 spaces beyond avail
-                                            undo.add(grid);//grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                            grid[i][j + 2] = grid[i][j + 1]; //two ahead is box  
-                                            grid[i][j + 1] = sokoban; //box is soko
-                                            grid[i][j] = empty; //soko is empty or hole???
-                                        } else if (grid[i][j + 2] == box || grid[i][j + 2] == wall) { //2 spaces is a box OR wall
+                                        if (gr.grid[i][j + 2] == hole || gr.grid[i][j + 2] == empty) { //2 spaces beyond avail
+                                            undo.push(grid);
+                                            gr.grid[i][j + 2] = gr.grid[i][j + 1]; //two ahead is box  
+                                            gr.grid[i][j + 1] = sokoban; //box is soko
+                                            gr.grid[i][j] = empty; //soko is empty or hole???
+                                        } else if (gr.grid[i][j + 2] == box || gr.grid[i][j + 2] == wall) { //2 spaces is a box OR wall
                                             playAudio(block);
                                         }
                                         break outerloop;
                                     case 3: //hole, move up
-                                        undo.add(grid);
-                                        grid[i][j + 1] = sokoban; //space up replaced by soko
-                                        grid[i][j] = hole; //then, soko = hole
+                                        undo.push(grid);
+                                        gr.grid[i][j + 1] = sokoban; //space up replaced by soko
+                                        gr.grid[i][j] = hole; //then, soko = hole
                                         break outerloop;
                                 }
                             }
                         }
                     }
-                    gr.grid = grid;
                     gr.repaint();
                 }
                 if (ke.getCode() == KeyCode.LEFT) {
@@ -628,36 +728,35 @@ public class SokobanUI extends Pane {
                     outerloop:
                     for (int i = 0; i < gr.gridColumns; i++) {
                         for (int j = 0; j < gr.gridRows; j++) {
-                            if (grid[i][j] == sokoban) {
-                                switch (grid[i - 1][j]) {
+                            if (gr.grid[i][j] == sokoban) {
+                                switch (gr.grid[i - 1][j]) {
                                     case 0: //empty, move up
-                                        undo.add(grid);
-                                        grid[i - 1][j] = sokoban; //space up replaced by soko
-                                        grid[i][j] = empty; //then, soko = blank
+                                        undo.push(grid);
+                                        gr.grid[i - 1][j] = sokoban; //space up replaced by soko
+                                        gr.grid[i][j] = empty; //then, soko = blank
                                         break outerloop;
                                     case 1: //wall
                                         playAudio(block);
                                         break outerloop; //don't move
                                     case 2: //box, move soko up & move box up
-                                        if (grid[i - 2][j] == hole || grid[i - 2][j] == empty) { //2 spaces beyond avail
-                                            undo.add(grid);//grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                            grid[i - 2][j] = grid[i - 1][j]; //two ahead is box  
-                                            grid[i - 1][j] = sokoban; //box is soko
-                                            grid[i][j] = empty; //soko is empty or hole???
-                                        } else if (grid[i - 2][j] == box || grid[i - 2][j] == wall) { //2 spaces is a box OR wall
+                                        if (gr.grid[i - 2][j] == hole || gr.grid[i - 2][j] == empty) { //2 spaces beyond avail
+                                            undo.push(grid);//gr.grid[i-2][j] <= box & gr.grid[i-1][j] <= soko
+                                            gr.grid[i - 2][j] = gr.grid[i - 1][j]; //two ahead is box  
+                                            gr.grid[i - 1][j] = sokoban; //box is soko
+                                            gr.grid[i][j] = empty; //soko is empty or hole???
+                                        } else if (gr.grid[i - 2][j] == box || gr.grid[i - 2][j] == wall) { //2 spaces is a box OR wall
                                             playAudio(block);
                                         }
                                         break outerloop;
                                     case 3: //hole, move up
-                                        undo.add(grid);
-                                        grid[i - 1][j] = sokoban; //space up replaced by soko
-                                        grid[i][j] = hole; //then, soko = hole
+                                        undo.push(grid);
+                                        gr.grid[i - 1][j] = sokoban; //space up replaced by soko
+                                        gr.grid[i][j] = hole; //then, soko = hole
                                         break outerloop;
                                 }
                             }
                         }
                     }
-                    gr.grid = grid;
                     gr.repaint();
                 }
                 if (ke.getCode() == KeyCode.RIGHT) {
@@ -665,41 +764,38 @@ public class SokobanUI extends Pane {
                     outerloop:
                     for (int i = 0; i < gr.gridColumns; i++) {
                         for (int j = 0; j < gr.gridRows; j++) {
-                            if (grid[i][j] == sokoban) {
-                                switch (grid[i + 1][j]) {
+                            if (gr.grid[i][j] == sokoban) {
+                                switch (gr.grid[i + 1][j]) {
                                     case 0: //empty, move up
-                                        undo.add(grid);
-                                        grid[i + 1][j] = sokoban; //space up replaced by soko
-                                        grid[i][j] = empty; //then, soko = blank
+                                        undo.push(grid);
+                                        gr.grid[i + 1][j] = sokoban; //space up replaced by soko
+                                        gr.grid[i][j] = empty; //then, soko = blank
                                         break outerloop;
                                     case 1: //wall
                                         playAudio(block);
                                         break outerloop; //don't move
                                     case 2: //box, move soko up & move box up
-                                        if (grid[i + 2][j] == hole || grid[i + 2][j] == empty) { //2 spaces beyond avail
-                                            undo.add(grid);//grid[i-2][j] <= box & grid[i-1][j] <= soko
-                                            grid[i + 2][j] = grid[i + 1][j]; //two ahead is box  
-                                            grid[i + 1][j] = sokoban; //box is soko
-                                            grid[i][j] = empty; //soko is empty or hole???
-                                        } else if (grid[i + 2][j] == box || grid[i + 2][j] == wall) { //2 spaces is a box OR wall
+                                        if (gr.grid[i + 2][j] == hole || gr.grid[i + 2][j] == empty) { //2 spaces beyond avail
+                                            undo.push(grid);//gr.grid[i-2][j] <= box & gr.grid[i-1][j] <= soko
+                                            gr.grid[i + 2][j] = gr.grid[i + 1][j]; //two ahead is box  
+                                            gr.grid[i + 1][j] = sokoban; //box is soko
+                                            gr.grid[i][j] = empty; //soko is empty or hole???
+                                        } else if (gr.grid[i + 2][j] == box || gr.grid[i + 2][j] == wall) { //2 spaces is a box OR wall
                                             playAudio(block);
                                         }
                                         break outerloop;
                                     case 3: //hole, move up
-                                        undo.add(grid);
-                                        grid[i + 1][j] = sokoban; //space up replaced by soko
-                                        grid[i][j] = hole; //then, soko = hole
+                                        undo.push(grid);
+                                        gr.grid[i + 1][j] = sokoban; //space up replaced by soko
+                                        gr.grid[i][j] = hole; //then, soko = hole
                                         break outerloop;
                                 }
                             }
                         }
                     }
-                    gr.grid = grid;
                     gr.repaint();
                 }
                 if (ke.getCode() == KeyCode.U) {
-                    //gr.grid = grid;
-                    //gr.repaint();
                     undo();
                 }
             }
@@ -787,14 +883,13 @@ public class SokobanUI extends Pane {
     public void undo() {
         if (undo.isEmpty() == false) {
             System.out.println("u");
-            gr.grid = undo.remove(undo.size() - 1);
-            //gr.grid = prevGrid;
-            System.out.println(gr.grid.toString());
+            gr.grid = undo.pop();
             gr.repaint();
         }
     }
 
     final Media block = new Media(new File("audio/block.wav").toURI().toString());
+
     public void playAudio(Media media) {
         media = block;
         MediaPlayer audio = new MediaPlayer(media);
