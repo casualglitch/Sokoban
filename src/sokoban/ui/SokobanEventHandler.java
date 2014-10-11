@@ -20,6 +20,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.geometry.Pos;
 import properties_manager.PropertiesManager;
 import xml_utilities.InvalidXMLFileFormatException;
 import sokoban.file.SokobanFileLoader;
@@ -91,6 +92,39 @@ public class SokobanEventHandler {
             e.printStackTrace();
         }
         
+    }
+    
+    /**
+     * This method responds to a win.
+     *
+     * @param window The window that the user has requested to close.
+     */
+    public void respondToWin(Stage primaryStage) {
+        // ENGLIS IS THE DEFAULT
+        String options = "OK";
+
+        // FIRST MAKE SURE THE USER REALLY WANTS TO EXIT
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.WINDOW_MODAL);
+        dialogStage.initOwner(primaryStage);
+        BorderPane exitPane = new BorderPane();
+        HBox optionPane = new HBox();
+        Button okButton = new Button(options);
+        optionPane.setSpacing(10.0);
+        optionPane.setAlignment(Pos.CENTER);
+        optionPane.getChildren().addAll(okButton);
+        Label exitLabel = new Label("You Win!");
+        exitPane.setCenter(exitLabel);
+        exitPane.setBottom(optionPane);
+        Scene scene = new Scene(exitPane, 300, 100);
+        dialogStage.setScene(scene);
+        dialogStage.show();
+        // WHAT'S THE USER'S DECISION?
+        okButton.setOnAction(e -> {
+            dialogStage.close();
+            respondToNewGameRequest(ui.currentLevel);
+        });
+
     }
     
     /**

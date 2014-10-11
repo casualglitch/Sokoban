@@ -21,7 +21,7 @@ public class SokobanGameData {
     final long MILLIS_IN_A_SECOND = 1000;
     final long MILLIS_IN_A_MINUTE = 1000 * 60;
     final long MILLIS_IN_AN_HOUR = 1000 * 60 * 60;
-    
+
     
     /*
      * Construct this object when a game begins.
